@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title|default:"Peta Fullscreen" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+      /* Fullscreen Map Styles */
+      :root {
+        --brutal-border-width: 4px;
+        --brutal-dark: #1f2937;
+        --soft-yellow: #fef3c7;
+        --soft-pink: #fce7f3;
+        --soft-blue: #dbeafe;
+        --soft-green: #dcfce7;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: 'Courier New', monospace;
+      }
+
+      .fullscreen-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      .map-fullscreen {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .map-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-bottom: var(--brutal-border-width) solid var(--brutal-dark);
+        padding: 0.75rem 1rem;
+        height: auto;
+        min-height: 60px;
+      }
+
+      .map-controls {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-width: 200px;
+      }
+
+      .brutal-btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-family: 'Courier New', monospace;
+        box-shadow: 4px 4px 0px 0px #ec4899;
+      }
+
+      .brutal-btn:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 6px 6px 0px 0px #ec4899;
+      }
+
+      .btn-yellow { background: var(--soft-yellow); color: #1f2937; }
+      .btn-pink { background: var(--soft-pink); color: #1f2937; }
+      .btn-blue { background: var(--soft-blue); color: #1f2937; }
+      .btn-green { background: var(--soft-green); color: #1f2937; }
+
+      .error-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: var(--soft-pink);
+        padding: 2rem;
+      }
+
+      .error-box {
+        background: white;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        padding: 2rem;
+        max-width: 600px;
+        text-align: center;
+        box-shadow: 8px 8px 0px 0px #ec4899;
+      }
+
+      .info-panel {
+        position: fixed;
+        top: 60px; /* Start below header */
+        left: -320px;
+        width: 300px;
+        height: calc(100vh - 60px);
+        background: white;
+        border-right: var(--brutal-border-width) solid var(--brutal-dark);
+        z-index: 999;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        padding: 1.5rem 1rem;
+        padding-bottom: 8rem; /* Space for mobile controls */
+      }
+
+      .info-panel.active {
+        left: 0;
+      }
+
+      .info-toggle {
+        position: fixed;
+        top: 50%;
+        left: 1rem;
+        z-index: 1001;
+        transform: translateY(-50%);
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        .map-overlay {
+          padding: 0.5rem 0.75rem;
+          min-height: 50px;
+        }
+
+        .map-overlay h1 {
+          font-size: 0.875rem;
+          line-height: 1.2;
+        }
+
+        .map-overlay p {
+          font-size: 0.75rem;
+        }
+
+        .map-controls {
+          bottom: 0.5rem;
+          right: 0.5rem;
+          left: auto;
+          flex-direction: column;
+          max-width: 120px;
+          gap: 0.5rem;
+        }
+
+        .map-controls .brutal-btn {
+          padding: 0.5rem 0.75rem;
+          font-size: 0.65rem;
+          text-align: center;
+          min-height: 36px;
+        }
+
+        .info-panel {
+          width: 100%;
+          left: -100%;
+          top: 50px;
+          height: calc(100vh - 50px);
+          padding: 1rem 0.75rem;
+          padding-bottom: 10rem; /* More space for mobile controls */
+        }
+
+        .info-panel .brutal-btn {
+          padding: 0.75rem;
+          font-size: 0.75rem;
+        }
+
+        .error-container {
+          padding: 1rem;
+        }
+
+        .error-box {
+          padding: 1.5rem;
+          margin: 1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .map-overlay {
+          padding: 0.5rem;
+        }
+
+        .map-overlay .flex {
+          flex-direction: column;
+          gap: 0.5rem;
+          align-items: flex-start;
+        }
+
+        .map-overlay .flex > div:last-child {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .map-controls {
+          max-width: 100px;
+        }
+
+        .map-controls .brutal-btn {
+          font-size: 0.6rem;
+          padding: 0.4rem 0.6rem;
+        }
+      }
+
+      /* Loading Animation */
+      .loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 500;
+        text-align: center;
+      }
+
+      .loading-spinner {
+        border: 4px solid var(--soft-blue);
+        border-top: 4px solid var(--brutal-dark);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Header title handling for long names */
+      .header-title {
+        max-width: calc(100vw - 120px);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+
+      .header-title-responsive {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .header-title-multiline {
+        white-space: normal;
+        line-height: 1.1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      @media (max-width: 640px) {
+        .header-title {
+          max-width: calc(100vw - 100px);
+        }
+        
+        .header-title-multiline {
+          -webkit-line-clamp: 3;
+          font-size: 0.75rem;
+          line-height: 1.2;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    {% if error %}
+    <div class="error-container">
+      <div class="error-box">
+        <h1 class="text-2xl font-bold mb-4 text-red-600">⚠️ ERROR</h1>
+        <p class="text-lg mb-6">{{ error }}</p>
+        <a href="/" class="brutal-btn btn-yellow">🏠 KEMBALI KE DASHBOARD</a>
+      </div>
+    </div>
+    {% else %}
+    
+    <!-- Map Overlay Header -->
+    <div class="map-overlay">
+      <div class="flex justify-between items-center">
+        <div class="flex-1 min-w-0">
+          {% if config %}
+            {% if config.name|length > 80 %}
+              <h1 class="header-title header-title-multiline text-xs sm:text-sm font-bold text-gray-900" title="{{ config.name }}">
+                🗺️ {{ config.name }}
+              </h1>
+              <p class="text-xs text-gray-500">{{ config.name|length }} karakter</p>
+            {% elif config.name|length > 40 %}
+              <h1 class="header-title header-title-responsive text-sm sm:text-base font-bold text-gray-900" title="{{ config.name }}">
+                🗺️ {{ config.name }}
+              </h1>
+            {% else %}
+              <h1 class="text-base sm:text-lg font-bold text-gray-900" title="{{ config.name }}">
+                🗺️ {{ config.name }}
+              </h1>
+            {% endif %}
+            <p class="text-xs sm:text-sm text-gray-600 font-bold truncate">
+              📅 Periode: {{ config.tahun_mulai|default:"N/A" }} - {{ config.tahun_akhir|default:"N/A" }}
+            </p>
+          {% else %}
+            <h1 class="text-base sm:text-lg font-bold text-gray-900">
+              🗺️ Peta Interaktif
+            </h1>
+            <p class="text-xs sm:text-sm text-gray-600 font-bold">
+              ⚠️ Konfigurasi belum tersedia
+            </p>
+          {% endif %}
+        </div>
+        <div class="flex gap-1 sm:gap-2 ml-2">
+          <button id="toggle-info" class="brutal-btn btn-blue text-xs px-2 py-1" title="Buka Info Panel (I)">ℹ️</button>
+          <a href="/" class="brutal-btn btn-pink text-xs px-2 py-1" title="Kembali ke Dashboard (H)">🏠</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div id="info-panel" class="info-panel">
+      <button id="close-info" class="brutal-btn btn-pink mb-4 w-full text-sm">✕ TUTUP</button>
+      
+      <h3 class="text-base font-bold mb-4 border-b-2 border-gray-800 pb-2">📊 INFORMASI PETA</h3>
+      
+      {% if config and config.name|length > 60 %}
+      <div class="bg-orange-100 p-2 sm:p-3 border-2 border-gray-800 mb-3">
+        <h4 class="font-bold text-xs sm:text-sm mb-2">📝 Judul Lengkap</h4>
+        <p class="text-xs sm:text-sm break-words">{{ config.name }}</p>
+        <p class="text-xs text-gray-600 mt-1">Total: {{ config.name|length }} karakter</p>
+      </div>
+      {% endif %}
+      
+      <div class="space-y-3">
+        {% if config %}
+        <div class="bg-yellow-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">🌍 Lingkup Geografi</h4>
+          <p class="text-xs sm:text-sm">{{ config.lingkup_geografi|default:"Belum diatur" }}</p>
+        </div>
+        
+        <div class="bg-blue-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">📈 Sumber Data</h4>
+          <p class="text-xs sm:text-sm">{{ config.sumber_data|default:"Belum diatur" }}</p>
+        </div>
+        
+        <div class="bg-green-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">🛠️ Platform GIS</h4>
+          <p class="text-xs sm:text-sm">{{ config.platform_gis|default:"QGIS & Leaflet" }}</p>
+        </div>
+
+        <div class="bg-purple-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">📅 Status Data</h4>
+          {% if yearly_map.data_csv %}
+          <p class="text-xs sm:text-sm text-green-700">✅ Data CSV tersedia</p>
+          {% else %}
+          <p class="text-xs sm:text-sm text-red-700">❌ Data CSV belum diupload</p>
+          {% endif %}
+          {% if yearly_map.url_peta %}
+          <p class="text-xs sm:text-sm text-green-700">✅ URL Peta tersedia</p>
+          {% else %}
+          <p class="text-xs sm:text-sm text-red-700">❌ URL Peta belum diatur</p>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="bg-red-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">⚠️ Konfigurasi Kosong</h4>
+          <p class="text-xs sm:text-sm">Belum ada data yang dikonfigurasi. Silakan tambahkan melalui admin panel.</p>
+          <a href="/admin/" class="brutal-btn btn-blue mt-2 text-xs px-2 py-1">⚙️ Admin Panel</a>
+        </div>
+        {% endif %}
+
+        <div class="bg-pink-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">🎯 Panduan Navigasi</h4>
+          <ul class="text-xs space-y-1">
+            <li>• Klik & drag untuk menggeser peta</li>
+            <li>• Scroll untuk zoom in/out</li>
+            <li>• Klik wilayah untuk detail data</li>
+            <li>• Tekan F untuk fullscreen</li>
+            <li>• Tekan I untuk toggle info</li>
+            <li>• Tekan H untuk ke dashboard</li>
+          </ul>
+        </div>
+
+        <div class="bg-teal-100 p-2 sm:p-3 border-2 border-gray-800">
+          <h4 class="font-bold text-xs sm:text-sm mb-2">🔧 Troubleshooting</h4>
+          <ul class="text-xs space-y-1">
+            <li>• Peta tidak muncul? Klik refresh</li>
+            <li>• Lambat loading? Periksa koneksi</li>
+            <li>• Error display? Reload halaman</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Map Container -->
+    <div class="fullscreen-container">
+      {% if yearly_map and yearly_map.url_peta %}
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <p class="font-bold text-gray-700">Memuat Peta...</p>
+      </div>
+      
+      <iframe 
+        id="map-frame"
+        src="{{ yearly_map.url_peta }}" 
+        title="Peta Fullscreen - {{ yearly_map.judul|default:'Peta Papua' }}"
+        class="map-fullscreen"
+        onload="hideLoading()"
+        allow="fullscreen">
+      </iframe>
+      {% else %}
+      <div class="error-container">
+        <div class="error-box">
+          <h2 class="text-xl font-bold mb-4">📍 URL PETA BELUM DIKONFIGURASI</h2>
+          <p class="mb-6">Silakan tambahkan URL peta melalui admin dashboard.</p>
+          <a href="/admin/" class="brutal-btn btn-blue">⚙️ ADMIN</a>
+          <a href="/" class="brutal-btn btn-yellow ml-2">🏠 DASHBOARD</a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Map Controls -->
+    <div class="map-controls">
+      <button id="fullscreen-btn" class="brutal-btn btn-green" title="Fullscreen (F)">⛶</button>
+      <button id="refresh-btn" class="brutal-btn btn-blue" title="Refresh (R)">🔄</button>
+      <a href="/" class="brutal-btn btn-yellow" title="Dashboard (H)">📊</a>
+    </div>
+
+    {% endif %}
+
+    <script>
+      // Hide loading spinner
+      function hideLoading() {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+        }
+      }
+
+      // Show loading spinner
+      function showLoading() {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'block';
+        }
+      }
+
+      // Handle iframe load error
+      function handleMapError() {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p class="font-bold text-red-700">Error loading map</p>
+            <button onclick="retryLoad()" class="brutal-btn btn-yellow mt-2 text-xs px-2 py-1">🔄 Retry</button>
+          `;
+        }
+      }
+
+      // Retry loading map
+      function retryLoad() {
+        const mapFrame = document.getElementById('map-frame');
+        if (mapFrame) {
+          showLoading();
+          mapFrame.src = mapFrame.src;
+        }
+      }
+
+      // Info panel toggle with error handling
+      const toggleInfo = document.getElementById('toggle-info');
+      const closeInfo = document.getElementById('close-info');
+      const infoPanel = document.getElementById('info-panel');
+      
+      // Toggle info panel (open/close with same button)
+      if (toggleInfo && infoPanel) {
+        toggleInfo.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (infoPanel.classList.contains('active')) {
+            // Close panel
+            infoPanel.classList.remove('active');
+            toggleInfo.innerHTML = 'ℹ️';
+            toggleInfo.title = 'Buka Info Panel (I)';
+          } else {
+            // Open panel
+            infoPanel.classList.add('active');
+            toggleInfo.innerHTML = '✕';
+            toggleInfo.title = 'Tutup Info Panel (I)';
+          }
+        });
+      }
+      
+      // Close info panel function
+      function closeInfoPanel() {
+        if (infoPanel) {
+          infoPanel.classList.remove('active');
+        }
+        if (toggleInfo) {
+          toggleInfo.innerHTML = 'ℹ️';
+          toggleInfo.title = 'Buka Info Panel (I)';
+        }
+      }
+      
+      if (closeInfo) {
+        closeInfo.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closeInfoPanel();
+        });
+      }
+
+      // Fullscreen functionality with error handling
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+      if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', () => {
+          try {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+              document.documentElement.webkitRequestFullscreen();
+            } else if (document.documentElement.msRequestFullscreen) {
+              document.documentElement.msRequestFullscreen();
+            } else {
+              alert('Fullscreen tidak didukung browser ini');
+            }
+          } catch (error) {
+            console.error('Fullscreen error:', error);
+          }
+        });
+      }
+
+      // Refresh map with error handling
+      const refreshBtn = document.getElementById('refresh-btn');
+      const mapFrame = document.getElementById('map-frame');
+      if (refreshBtn && mapFrame) {
+        refreshBtn.addEventListener('click', () => {
+          try {
+            showLoading();
+            const currentSrc = mapFrame.src;
+            mapFrame.src = '';
+            setTimeout(() => {
+              mapFrame.src = currentSrc;
+            }, 100);
+          } catch (error) {
+            console.error('Refresh error:', error);
+            handleMapError();
+          }
+        });
+      }
+
+      // Keyboard shortcuts with error handling
+      document.addEventListener('keydown', (e) => {
+        try {
+          switch(e.key.toLowerCase()) {
+            case 'f11':
+            case 'f':
+              e.preventDefault();
+              if (fullscreenBtn) fullscreenBtn.click();
+              break;
+            case 'i':
+              e.preventDefault();
+              if (toggleInfo) toggleInfo.click();
+              break;
+            case 'r':
+              e.preventDefault();
+              if (refreshBtn) refreshBtn.click();
+              break;
+            case 'h':
+              e.preventDefault();
+              window.location.href = '/';
+              break;
+            case 'escape':
+              if (infoPanel && infoPanel.classList.contains('active')) {
+                closeInfoPanel();
+              }
+              break;
+          }
+        } catch (error) {
+          console.error('Keyboard shortcut error:', error);
+        }
+      });
+
+      // Close info panel when clicking outside
+      document.addEventListener('click', (e) => {
+        try {
+          if (infoPanel && infoPanel.classList.contains('active') && 
+              !infoPanel.contains(e.target) && 
+              (!toggleInfo || !toggleInfo.contains(e.target))) {
+            closeInfoPanel();
+          }
+        } catch (error) {
+          console.error('Click outside error:', error);
+        }
+      });
+
+      // Auto-hide loading after timeout
+      setTimeout(() => {
+        if (document.getElementById('loading')) {
+          hideLoading();
+        }
+      }, 10000); // 10 seconds timeout
+
+      // Add iframe error handling
+      if (mapFrame) {
+        mapFrame.addEventListener('error', handleMapError);
+        
+        // Check if iframe failed to load after timeout
+        setTimeout(() => {
+          try {
+            if (mapFrame.contentDocument === null) {
+              handleMapError();
+            }
+          } catch (error) {
+            // Cross-origin, assume it's loading fine
+            hideLoading();
+          }
+        }, 5000);
+      }
+    </script>
+  </body>
+</html>

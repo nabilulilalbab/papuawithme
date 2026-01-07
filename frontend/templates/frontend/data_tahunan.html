@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title|default:"Data Tahunan" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Extended Brutalism + Soft-Bright Color Palette */
+      :root {
+        --brutal-border-width: 4px;
+        --brutal-shadow-offset: 8px;
+        --soft-pink: #fce7f3;
+        --soft-blue: #dbeafe;
+        --soft-green: #dcfce7;
+        --soft-yellow: #fef3c7;
+        --soft-purple: #ede9fe;
+        --soft-teal: #ccfbf1;
+        --soft-orange: #fed7aa;
+        --brutal-dark: #1f2937;
+        --brutal-accent-pink: #ec4899;
+        --brutal-accent-blue: #3b82f6;
+        --brutal-accent-green: #10b981;
+        --brutal-accent-purple: #8b5cf6;
+      }
+
+      body {
+        font-family: 'Courier New', monospace;
+        background-color: #f3f4f6;
+      }
+
+      /* Brutalism Core Styles */
+      .brutal-border {
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        transition: all 0.2s ease;
+      }
+
+      .brutal-shadow-pink {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-pink);
+      }
+      
+      .brutal-shadow-blue {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-blue);
+      }
+      
+      .brutal-shadow-green {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-green);
+      }
+      
+      .brutal-shadow-purple {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-purple);
+      }
+
+      .brutal-shadow-teal {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px #14b8a6;
+      }
+
+      .brutal-shadow-orange {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px #f97316;
+      }
+
+      /* Hover Effects */
+      .brutal-hover:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: calc(var(--brutal-shadow-offset) + 2px) calc(var(--brutal-shadow-offset) + 2px) 0px 0px currentColor;
+      }
+
+      /* Soft-Bright Background Colors */
+      .bg-soft-pink { background-color: var(--soft-pink); }
+      .bg-soft-blue { background-color: var(--soft-blue); }
+      .bg-soft-green { background-color: var(--soft-green); }
+      .bg-soft-yellow { background-color: var(--soft-yellow); }
+      .bg-soft-purple { background-color: var(--soft-purple); }
+      .bg-soft-teal { background-color: var(--soft-teal); }
+      .bg-soft-orange { background-color: var(--soft-orange); }
+
+      /* Table Styles */
+      .brutal-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      .brutal-table th,
+      .brutal-table td {
+        padding: 1rem;
+        text-align: left;
+        border: 2px solid var(--brutal-dark);
+      }
+
+      .brutal-table th {
+        background-color: var(--brutal-dark);
+        color: white;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.875rem;
+      }
+
+      .brutal-table tbody tr:nth-child(odd) {
+        background-color: white;
+      }
+
+      .brutal-table tbody tr:nth-child(even) {
+        background-color: #f9fafb;
+      }
+
+      .brutal-table tbody tr:hover {
+        background-color: var(--soft-yellow);
+      }
+
+      /* Button Styles */
+      .brutal-btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 0.875rem;
+      }
+
+      .brutal-btn:hover {
+        transform: translate(-2px, -2px);
+      }
+
+      /* Stats Card */
+      .stats-card {
+        padding: 1rem;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+      }
+
+      .stats-value {
+        font-size: 1.875rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .stats-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        margin-top: 0.5rem;
+      }
+
+      /* Filter Tabs */
+      .filter-tab {
+        padding: 0.75rem 1.5rem;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        background: white;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+      }
+
+      .filter-tab:hover {
+        transform: translate(-1px, -1px);
+      }
+
+      .filter-tab.active {
+        background-color: var(--brutal-dark);
+        color: white;
+      }
+
+      /* Chart Container */
+      .chart-container {
+        position: relative;
+        height: 400px;
+        padding: 1rem;
+        background: white;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        :root {
+          --brutal-border-width: 3px;
+          --brutal-shadow-offset: 6px;
+        }
+
+        .stats-value {
+          font-size: 1.5rem;
+        }
+
+        .chart-container {
+          height: 300px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        :root {
+          --brutal-border-width: 2px;
+          --brutal-shadow-offset: 4px;
+        }
+
+        .brutal-table th,
+        .brutal-table td {
+          padding: 0.5rem;
+          font-size: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-white brutal-border border-b-4 sticky top-0 z-50">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-black uppercase tracking-tight">
+              📊 {{ title }}
+            </h1>
+            {% if config %}
+            <p class="text-sm md:text-base text-gray-600 mt-1">
+              {{ config.lingkup_geografi }} | {{ config.sumber_data }}
+            </p>
+            {% endif %}
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'frontend:home' %}" 
+               class="brutal-btn bg-soft-pink brutal-shadow-pink">
+              ← Kembali
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+      {% if error %}
+      <!-- Error State -->
+      <div class="bg-soft-pink brutal-border brutal-shadow-pink p-8 text-center">
+        <h2 class="text-2xl font-black uppercase mb-4">⚠️ Error</h2>
+        <p class="text-lg">{{ error }}</p>
+      </div>
+      {% elif not yearly_data %}
+      <!-- Empty State -->
+      <div class="bg-soft-yellow brutal-border brutal-shadow-orange p-8 text-center">
+        <h2 class="text-2xl font-black uppercase mb-4">📭 Tidak Ada Data</h2>
+        <p class="text-lg">Belum ada data tahunan yang tersedia.</p>
+      </div>
+      {% else %}
+
+      <!-- Filter Tabs -->
+      <div class="mb-8">
+        <div class="flex gap-0 overflow-x-auto">
+          {% for year_data in yearly_data %}
+          <button 
+            class="filter-tab {% if forloop.first %}active{% endif %}"
+            onclick="showYear({{ year_data.tahun }})"
+            id="tab-{{ year_data.tahun }}">
+            {{ year_data.tahun }}
+          </button>
+          {% endfor %}
+          <button 
+            class="filter-tab"
+            onclick="showYear('all')"
+            id="tab-all">
+            Semua Tahun
+          </button>
+        </div>
+      </div>
+
+      <!-- Year Data Sections -->
+      {% for year_data in yearly_data %}
+      <div class="year-section" id="year-{{ year_data.tahun }}" style="{% if not forloop.first %}display: none;{% endif %}">
+        
+        <!-- Year Title -->
+        <div class="bg-soft-blue brutal-border brutal-shadow-blue p-6 mb-6">
+          <h2 class="text-3xl font-black uppercase">{{ year_data.judul }}</h2>
+          <p class="text-sm mt-2">Tahun: {{ year_data.tahun }}</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <!-- Makanan Stats -->
+          <div class="stats-card bg-soft-green brutal-shadow-green">
+            <div class="stats-value text-green-600">{{ year_data.stats.makanan.mean|floatformat:2 }}%</div>
+            <div class="stats-label text-gray-700">Rata-rata Makanan</div>
+          </div>
+          <div class="stats-card bg-soft-green brutal-shadow-green">
+            <div class="stats-value text-green-600">{{ year_data.stats.makanan.max|floatformat:2 }}%</div>
+            <div class="stats-label text-gray-700">Max Makanan</div>
+          </div>
+          
+          <!-- Non-Makanan Stats -->
+          <div class="stats-card bg-soft-purple brutal-shadow-purple">
+            <div class="stats-value text-purple-600">{{ year_data.stats.non_makanan.mean|floatformat:2 }}%</div>
+            <div class="stats-label text-gray-700">Rata-rata Non-Makanan</div>
+          </div>
+          <div class="stats-card bg-soft-purple brutal-shadow-purple">
+            <div class="stats-value text-purple-600">{{ year_data.stats.non_makanan.max|floatformat:2 }}%</div>
+            <div class="stats-label text-gray-700">Max Non-Makanan</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="mb-8 bg-white brutal-border brutal-shadow-blue p-4">
+          <h3 class="text-xl font-black uppercase mb-4">📈 Visualisasi Data</h3>
+          <div class="chart-container">
+            <canvas id="chart-{{ year_data.tahun }}"></canvas>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="bg-white brutal-border brutal-shadow-green p-4 mb-8 overflow-x-auto">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-black uppercase">📋 Tabel Data Lengkap</h3>
+            <a href="{{ year_data.csv_url }}" 
+               download 
+               class="brutal-btn bg-soft-green brutal-shadow-green text-sm">
+              💾 Download CSV
+            </a>
+          </div>
+          <table class="brutal-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Kabupaten/Kota</th>
+                <th>Makanan (%)</th>
+                <th>Non-Makanan (%)</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in year_data.data %}
+              <tr>
+                <td class="font-bold">{{ forloop.counter }}</td>
+                <td class="font-bold">{{ row.kabupaten }}</td>
+                <td class="text-green-600 font-bold">{{ row.makanan|floatformat:2 }}%</td>
+                <td class="text-purple-600 font-bold">{{ row.non_makanan|floatformat:2 }}%</td>
+                <td class="font-bold">{{ row.makanan|add:row.non_makanan|floatformat:2 }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+      {% endfor %}
+
+      <!-- All Years Comparison -->
+      <div class="year-section" id="year-all" style="display: none;">
+        
+        <!-- Title -->
+        <div class="bg-soft-orange brutal-border brutal-shadow-orange p-6 mb-6">
+          <h2 class="text-3xl font-black uppercase">📊 Perbandingan Semua Tahun</h2>
+          <p class="text-sm mt-2">Data: {{ years|join:", " }}</p>
+        </div>
+
+        <!-- Comparison Chart -->
+        <div class="mb-8 bg-white brutal-border brutal-shadow-blue p-4">
+          <h3 class="text-xl font-black uppercase mb-4">📈 Trend Makanan vs Non-Makanan</h3>
+          <div class="chart-container">
+            <canvas id="chart-comparison"></canvas>
+          </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="bg-white brutal-border brutal-shadow-teal p-4 mb-8 overflow-x-auto">
+          <h3 class="text-xl font-black uppercase mb-4">📋 Tabel Perbandingan</h3>
+          <table class="brutal-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Kabupaten/Kota</th>
+                {% for year_data in yearly_data %}
+                <th colspan="2" class="text-center">{{ year_data.tahun }}</th>
+                {% endfor %}
+              </tr>
+              <tr>
+                {% for year_data in yearly_data %}
+                <th class="bg-green-700">MKN</th>
+                <th class="bg-purple-700">NON</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for kabupaten in all_kabupaten %}
+              <tr>
+                <td class="font-bold">{{ kabupaten }}</td>
+                {% for year_data in yearly_data %}
+                  {% for row in year_data.data %}
+                    {% if row.kabupaten == kabupaten %}
+                    <td class="text-green-600 font-bold">{{ row.makanan|floatformat:2 }}</td>
+                    <td class="text-purple-600 font-bold">{{ row.non_makanan|floatformat:2 }}</td>
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white brutal-border border-t-4 mt-12 py-6">
+      <div class="container mx-auto px-4 text-center">
+        <p class="text-sm font-bold uppercase">
+          Data © {% if config %}{{ config.sumber_data }}{% else %}Susenas{% endif %} | 
+          Platform: {% if config %}{{ config.platform_gis }}{% else %}QGIS & Leaflet{% endif %}
+        </p>
+      </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+      // Data dari Django
+      const yearlyData = {{ yearly_data_json|safe|default:"[]" }};
+      
+      // Function to show specific year
+      function showYear(year) {
+        // Hide all sections
+        document.querySelectorAll('.year-section').forEach(section => {
+          section.style.display = 'none';
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        
+        // Show selected section
+        document.getElementById('year-' + year).style.display = 'block';
+        
+        // Add active class to selected tab
+        document.getElementById('tab-' + year).classList.add('active');
+      }
+
+      // Create charts for each year
+      yearlyData.forEach(yearData => {
+        const ctx = document.getElementById('chart-' + yearData.tahun);
+        if (ctx) {
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: yearData.data.map(d => d.kabupaten),
+              datasets: [
+                {
+                  label: 'Makanan (%)',
+                  data: yearData.data.map(d => d.makanan),
+                  backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                  borderColor: 'rgba(16, 185, 129, 1)',
+                  borderWidth: 3
+                },
+                {
+                  label: 'Non-Makanan (%)',
+                  data: yearData.data.map(d => d.non_makanan),
+                  backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                  borderColor: 'rgba(139, 92, 246, 1)',
+                  borderWidth: 3
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: {
+                    callback: function(value) {
+                      return value + '%';
+                    },
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold'
+                    }
+                  },
+                  grid: {
+                    color: '#e5e7eb',
+                    lineWidth: 2
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold'
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold',
+                      size: 12
+                    },
+                    padding: 15
+                  }
+                },
+                tooltip: {
+                  backgroundColor: '#1f2937',
+                  titleFont: {
+                    family: "'Courier New', monospace",
+                    weight: 'bold'
+                  },
+                  bodyFont: {
+                    family: "'Courier New', monospace",
+                    weight: 'bold'
+                  },
+                  callbacks: {
+                    label: function(context) {
+                      return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Create comparison chart (all years)
+      if (yearlyData.length > 0) {
+        const comparisonCtx = document.getElementById('chart-comparison');
+        if (comparisonCtx) {
+          // Get all unique kabupaten
+          const allKabupaten = [...new Set(yearlyData.flatMap(yd => yd.data.map(d => d.kabupaten)))];
+          
+          // Create datasets for each year
+          const makananDatasets = yearlyData.map((yd, index) => {
+            const colors = [
+              'rgba(16, 185, 129, 0.7)',
+              'rgba(52, 211, 153, 0.7)',
+              'rgba(110, 231, 183, 0.7)'
+            ];
+            
+            return {
+              label: yd.tahun + ' - Makanan',
+              data: allKabupaten.map(kab => {
+                const found = yd.data.find(d => d.kabupaten === kab);
+                return found ? found.makanan : null;
+              }),
+              backgroundColor: colors[index % colors.length],
+              borderColor: colors[index % colors.length].replace('0.7', '1'),
+              borderWidth: 2
+            };
+          });
+
+          const nonMakananDatasets = yearlyData.map((yd, index) => {
+            const colors = [
+              'rgba(139, 92, 246, 0.7)',
+              'rgba(167, 139, 250, 0.7)',
+              'rgba(196, 181, 253, 0.7)'
+            ];
+            
+            return {
+              label: yd.tahun + ' - Non-Makanan',
+              data: allKabupaten.map(kab => {
+                const found = yd.data.find(d => d.kabupaten === kab);
+                return found ? found.non_makanan : null;
+              }),
+              backgroundColor: colors[index % colors.length],
+              borderColor: colors[index % colors.length].replace('0.7', '1'),
+              borderWidth: 2
+            };
+          });
+
+          new Chart(comparisonCtx, {
+            type: 'line',
+            data: {
+              labels: allKabupaten,
+              datasets: [...makananDatasets, ...nonMakananDatasets]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: {
+                    callback: function(value) {
+                      return value + '%';
+                    },
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold'
+                    }
+                  },
+                  grid: {
+                    color: '#e5e7eb',
+                    lineWidth: 2
+                  }
+                },
+                x: {
+                  ticks: {
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold',
+                      size: 10
+                    }
+                  },
+                  grid: {
+                    display: false
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    font: {
+                      family: "'Courier New', monospace",
+                      weight: 'bold',
+                      size: 11
+                    },
+                    padding: 10
+                  }
+                },
+                tooltip: {
+                  backgroundColor: '#1f2937',
+                  titleFont: {
+                    family: "'Courier New', monospace",
+                    weight: 'bold'
+                  },
+                  bodyFont: {
+                    family: "'Courier New', monospace",
+                    weight: 'bold'
+                  },
+                  callbacks: {
+                    label: function(context) {
+                      return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>

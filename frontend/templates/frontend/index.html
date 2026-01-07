@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QGIS - {{ title|default:"Dashboard Analisis Papua" }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Extended Brutalism + Soft-Bright Color Palette */
+      :root {
+        --brutal-border-width: 4px;
+        --brutal-shadow-offset: 8px;
+        --soft-pink: #fce7f3;
+        --soft-blue: #dbeafe;
+        --soft-green: #dcfce7;
+        --soft-yellow: #fef3c7;
+        --soft-purple: #ede9fe;
+        --soft-teal: #ccfbf1;
+        --soft-orange: #fed7aa;
+        --brutal-dark: #1f2937;
+        --brutal-accent-pink: #ec4899;
+        --brutal-accent-blue: #3b82f6;
+        --brutal-accent-green: #10b981;
+        --brutal-accent-purple: #8b5cf6;
+      }
+
+      /* Brutalism Core Styles */
+      .brutal-border {
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        transition: all 0.2s ease;
+      }
+
+      .brutal-shadow-pink {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-pink);
+      }
+      
+      .brutal-shadow-blue {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-blue);
+      }
+      
+      .brutal-shadow-green {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-green);
+      }
+      
+      .brutal-shadow-purple {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px var(--brutal-accent-purple);
+      }
+
+      .brutal-shadow-teal {
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px #14b8a6;
+      }
+
+      /* Hover Effects */
+      .brutal-hover:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: calc(var(--brutal-shadow-offset) + 2px) calc(var(--brutal-shadow-offset) + 2px) 0px 0px currentColor;
+      }
+
+      /* Responsive Brutalism */
+      @media (max-width: 768px) {
+        :root {
+          --brutal-border-width: 3px;
+          --brutal-shadow-offset: 6px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        :root {
+          --brutal-border-width: 2px;
+          --brutal-shadow-offset: 4px;
+        }
+      }
+
+      /* Soft-Bright Background Colors */
+      .bg-soft-pink { background-color: var(--soft-pink); }
+      .bg-soft-blue { background-color: var(--soft-blue); }
+      .bg-soft-green { background-color: var(--soft-green); }
+      .bg-soft-yellow { background-color: var(--soft-yellow); }
+      .bg-soft-purple { background-color: var(--soft-purple); }
+      .bg-soft-teal { background-color: var(--soft-teal); }
+      .bg-soft-orange { background-color: var(--soft-orange); }
+
+      /* Responsive Map Container */
+      .map-container {
+        position: relative;
+        overflow: hidden;
+        padding-top: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        width: 100%;
+        border-radius: 0; /* Remove border radius for brutalism */
+      }
+
+      .map-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+      }
+
+      /* Responsive Typography */
+      .brutal-title {
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1.1;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.02em;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+      }
+
+      /* Title length specific styles */
+      .title-long {
+        font-size: clamp(1.5rem, 4vw, 3rem) !important;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+
+      .title-very-long {
+        font-size: clamp(1.25rem, 3vw, 2.5rem) !important;
+        line-height: 1.3;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .brutal-subtitle {
+        font-size: clamp(1.25rem, 3vw, 2rem);
+        font-weight: 800;
+      }
+
+      /* Fixed Header Styles - Force Static Position */
+      header {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        z-index: 9999 !important;
+        transform: translate3d(0,0,0) !important;
+        -webkit-transform: translate3d(0,0,0) !important;
+        -moz-transform: translate3d(0,0,0) !important;
+        -ms-transform: translate3d(0,0,0) !important;
+        will-change: auto !important;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        -moz-backface-visibility: hidden;
+        -ms-backface-visibility: hidden;
+      }
+      
+      /* Ensure header children don't inherit scroll behavior */
+      header * {
+        position: static !important;
+        transform: none !important;
+        -webkit-transform: none !important;
+        -moz-transform: none !important;
+        -ms-transform: none !important;
+      }
+      
+      /* Disable any hover effects in header */
+      header .brutal-hover:hover {
+        transform: none !important;
+        -webkit-transform: none !important;
+      }
+      
+      /* Override any Tailwind classes that might interfere */
+      .fixed {
+        position: fixed !important;
+      }
+      
+      .sticky {
+        position: fixed !important;
+      }
+
+      /* Mobile Navigation */
+      .mobile-nav {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        z-index: 10000;
+        padding: 2rem;
+        padding-top: 6rem; /* Add space for close button */
+      }
+
+      .mobile-nav.active {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .mobile-nav .close-btn {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 10001;
+        background: #fca5a5 !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1.25rem;
+        font-weight: 900;
+        border: 4px solid #1f2937 !important;
+        box-shadow: 6px 6px 0px 0px #ec4899;
+      }
+
+      /* Enhanced Table Styles for Matrix */
+      .matrix-container {
+        background: white;
+        padding: 1rem;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        box-shadow: var(--brutal-shadow-offset) var(--brutal-shadow-offset) 0px 0px #14b8a6;
+        overflow-x: auto;
+        max-width: 100%;
+      }
+
+      .matrix-container table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-family: monospace;
+        font-size: 0.875rem;
+        min-width: 600px;
+      }
+
+      .matrix-container table th {
+        background-color: var(--soft-yellow);
+        color: #1f2937;
+        font-weight: 900;
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        border: 2px solid var(--brutal-dark);
+        border-bottom: 3px solid var(--brutal-dark);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+      }
+
+      .matrix-container table td {
+        background-color: white;
+        color: #1f2937;
+        font-weight: 700;
+        text-align: center;
+        padding: 0.5rem;
+        border: 1px solid var(--brutal-dark);
+        font-family: 'Courier New', monospace;
+      }
+
+      .matrix-container table tbody tr:nth-child(even) td {
+        background-color: #f9fafb;
+      }
+
+      .matrix-container table tbody tr:hover td {
+        background-color: var(--soft-pink);
+        transform: scale(1.02);
+        z-index: 10;
+        position: relative;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+      }
+
+      /* Responsive table improvements */
+      @media (max-width: 768px) {
+        .matrix-container {
+          padding: 0.5rem;
+        }
+        
+        .matrix-container table {
+          font-size: 0.75rem;
+          min-width: 500px;
+        }
+        
+        .matrix-container table th,
+        .matrix-container table td {
+          padding: 0.375rem 0.25rem;
+        }
+      }
+
+      /* Improved Button Styles */
+      .brutal-btn {
+        display: inline-block;
+        padding: 1rem 2rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border: var(--brutal-border-width) solid var(--brutal-dark);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .brutal-btn:hover {
+        transform: translate(-2px, -2px);
+      }
+
+      /* Responsive Grid Improvements */
+      .brutal-grid {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 640px) {
+        .brutal-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .brutal-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-soft-blue min-h-screen font-mono text-gray-800" style="padding-top: 0;">
+    <header class="bg-white p-4 brutal-border" style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important; width: 100% !important;">
+      <div class="container mx-auto flex justify-between items-center">
+        <h1 class="brutal-title text-xl sm:text-2xl lg:text-3xl brutal-border p-2 sm:p-3 bg-soft-yellow truncate max-w-xs sm:max-w-sm lg:max-w-md" style="transform: none !important; position: static !important;" title="QGIS PROJECT">
+          QGIS PROJECT
+        </h1>
+        <nav class="hidden md:block">
+          <ul class="flex space-x-2 lg:space-x-6 text-sm lg:text-lg font-bold">
+            <li>
+              <a href="#peta" class="brutal-btn bg-soft-pink text-xs lg:text-sm px-2 lg:px-4 py-2 brutal-shadow-pink">
+                PETA
+              </a>
+            </li>
+            <li>
+              <a href="#data" class="brutal-btn bg-soft-green text-xs lg:text-sm px-2 lg:px-4 py-2 brutal-shadow-green">
+                DATA
+              </a>
+            </li>
+            <li>
+              <a href="#info" class="brutal-btn bg-soft-purple text-xs lg:text-sm px-2 lg:px-4 py-2 brutal-shadow-purple">
+                INFO
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <button id="mobile-menu-btn" class="md:hidden brutal-border p-2 sm:p-3 bg-soft-teal text-sm font-bold" style="transform: none !important; position: static !important;">
+          MENU ☰
+        </button>
+      </div>
+    </header>
+    
+    <!-- Mobile Navigation -->
+    <div id="mobile-nav" class="mobile-nav">
+      <button id="close-menu" class="close-btn">✕ CLOSE</button>
+      <nav class="pt-4">
+        <ul class="space-y-6 text-2xl font-bold">
+          <li><a href="#peta" class="block brutal-btn bg-soft-pink w-full text-center py-4 brutal-shadow-pink">🗺️ PETA UTAMA</a></li>
+          <li><a href="#data" class="block brutal-btn bg-soft-green w-full text-center py-4 brutal-shadow-green">📊 DATA METRIK</a></li>
+          <li><a href="{% url 'frontend:data_tahunan' %}" class="block brutal-btn bg-soft-teal w-full text-center py-4 brutal-shadow-teal">📋 DATA LENGKAP</a></li>
+          <li><a href="#info" class="block brutal-btn bg-soft-purple w-full text-center py-4 brutal-shadow-purple">ℹ️ INFORMASI</a></li>
+          <li><a href="#matrices" class="block brutal-btn bg-soft-orange w-full text-center py-4 brutal-shadow-blue">🔢 MATRIKS</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8" style="margin-top: 100px;">
+      <section class="mb-8 sm:mb-12 lg:mb-16">
+        <div class="bg-soft-pink p-4 sm:p-6 lg:p-10 brutal-border brutal-shadow-pink">
+          <h2 class="brutal-title text-gray-900 mb-4 sm:mb-6 break-words leading-tight">
+            {% if config %}
+              {% if config.name|length > 100 %}
+                <span class="block text-2xl sm:text-3xl lg:text-4xl">{{ config.name|truncatechars:100 }}</span>
+                <span class="block text-sm sm:text-base lg:text-lg mt-2 text-gray-600 font-normal">({{ config.name|length }} karakter - Judul dipotong untuk tampilan)</span>
+              {% elif config.name|length > 50 %}
+                <span class="block text-3xl sm:text-4xl lg:text-5xl">{{ config.name }}</span>
+              {% else %}
+                {{ config.name }}
+              {% endif %}
+            {% else %}
+              {{ title|default:"Dashboard Analisis Papua" }}
+            {% endif %}
+          </h2>
+          <div class="mt-4 sm:mt-6 flex flex-wrap gap-3 items-center">
+            <a href="#peta" class="inline-block bg-soft-orange text-red-700 px-4 sm:px-6 py-2 sm:py-3 brutal-border brutal-shadow-pink font-black text-lg sm:text-xl lg:text-2xl uppercase tracking-wide transform -rotate-1 hover:rotate-0 transition-all duration-300 hover:scale-105 no-underline">
+              🌍 ANALISIS SPASIAL
+            </a>
+            <a href="#matrices" class="inline-block bg-soft-teal text-blue-700 px-4 sm:px-6 py-2 sm:py-3 brutal-border brutal-shadow-blue font-black text-lg sm:text-xl lg:text-2xl uppercase tracking-wide transform rotate-1 hover:rotate-0 transition-all duration-300 hover:scale-105 no-underline">
+              📊 MULTI-TAHUN
+            </a>
+            <a href="{% url 'frontend:data_tahunan' %}" class="inline-block bg-soft-green text-green-700 px-4 sm:px-6 py-2 sm:py-3 brutal-border brutal-shadow-green font-black text-lg sm:text-xl lg:text-2xl uppercase tracking-wide transform -rotate-1 hover:rotate-0 transition-all duration-300 hover:scale-105 no-underline">
+              📋 DATA LENGKAP
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: PETA PER TAHUN -->
+      {% if yearly_maps %}
+      <section id="peta-tahun" class="mb-8 sm:mb-12 lg:mb-16">
+        <div class="bg-soft-pink brutal-border brutal-shadow-pink p-4 sm:p-6 mb-6">
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black mb-2">
+            🗓️ PETA PER TAHUN
+          </h2>
+          <p class="text-sm sm:text-base text-gray-700">
+            Klik tombol fullscreen pada setiap peta untuk melihat detail per tahun
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          {% for year_map in yearly_maps %}
+          <div class="bg-white brutal-border brutal-shadow-blue brutal-hover p-4 sm:p-5">
+            <div class="mb-4">
+              <div class="flex justify-between items-center mb-3">
+                <span class="bg-soft-yellow brutal-border px-3 py-1 font-black text-sm sm:text-base">
+                  {{ year_map.tahun }}
+                </span>
+                <span class="text-xl sm:text-2xl">📍</span>
+              </div>
+              <h3 class="text-lg sm:text-xl font-black mb-2">{{ year_map.judul }}</h3>
+            </div>
+            
+            <div class="map-container mb-4">
+              <iframe
+                src="{{ year_map.url_peta }}"
+                title="Peta {{ year_map.judul }}"
+                loading="lazy"
+              ></iframe>
+            </div>
+            
+            <a href="{% url 'frontend:yearly_fullscreen' year_map.tahun %}" 
+               target="_blank"
+               class="brutal-btn bg-soft-green text-green-700 w-full text-center py-2 sm:py-3 brutal-shadow-green block text-sm sm:text-base font-bold">
+              🗺️ FULLSCREEN
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section id="analisis" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
+        <div id="data" class="space-y-4 sm:space-y-6 lg:col-span-1">
+          {% if mkn_heatmap_url %}
+          <div class="bg-soft-green p-4 sm:p-5 brutal-border brutal-shadow-green brutal-hover">
+            <p class="text-sm font-bold text-gray-700 mb-3">
+              📈 KORELASI MAKANAN
+            </p>
+            <img src="{{ mkn_heatmap_url }}" alt="Heatmap Korelasi Makanan" class="w-full brutal-border">
+          </div>
+          {% endif %}
+          
+          {% if non_mkn_heatmap_url %}
+          <div class="bg-soft-purple p-4 sm:p-5 brutal-border brutal-shadow-purple brutal-hover">
+            <p class="text-sm font-bold text-gray-700 mb-3">
+              📉 KORELASI NON-MAKANAN
+            </p>
+            <img src="{{ non_mkn_heatmap_url }}" alt="Heatmap Korelasi Non-Makanan" class="w-full brutal-border">
+          </div>
+          {% endif %}
+          
+          {% if download_zip_url %}
+          <div>
+            <a href="{{ download_zip_url }}" class="brutal-btn bg-red-500 text-white w-full text-center py-3 sm:py-4 brutal-shadow-pink block text-sm sm:text-base">
+              📦 DOWNLOAD ZIP
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section id="info" class="mb-8 sm:mb-12">
+        <h3 class="brutal-subtitle mb-4 sm:mb-6 brutal-border border-b pb-2 bg-soft-blue p-3">
+          📘 Detail dan Metodologi Proyek
+        </h3>
+        
+        <div class="brutal-grid gap-4 sm:gap-6">
+          <div class="bg-soft-blue p-4 brutal-border brutal-shadow-blue brutal-hover">
+            <p class="font-bold text-sm sm:text-lg mb-2 text-red-600">📅 Periode Data</p>
+            <p class="text-lg sm:text-xl font-bold">
+              {% if config %}{{ config.tahun_mulai }} - {{ config.tahun_akhir }}{% else %}2022 - 2024{% endif %}
+            </p>
+          </div>
+          
+          <div class="bg-soft-teal p-4 brutal-border brutal-shadow-teal brutal-hover">
+            <p class="font-bold text-sm sm:text-lg mb-2 text-red-600">🗺️ Lingkup Geografi</p>
+            <p class="text-lg sm:text-xl font-bold">
+              {% if config %}{{ config.lingkup_geografi }}{% else %}Kabupaten/Kota Papua{% endif %}
+            </p>
+          </div>
+          
+          <div class="bg-soft-pink p-4 brutal-border brutal-shadow-pink brutal-hover">
+            <p class="font-bold text-sm sm:text-lg mb-2 text-red-600">📊 Sumber Data</p>
+            <p class="text-lg sm:text-xl font-bold">
+              {% if config %}{{ config.sumber_data }}{% else %}Susenas BPS{% endif %}
+            </p>
+          </div>
+          
+          <div class="bg-soft-yellow p-4 brutal-border brutal-shadow-green brutal-hover">
+            <p class="font-bold text-sm sm:text-lg mb-2 text-red-600">🛠️ Platform GIS</p>
+            <p class="text-lg sm:text-xl font-bold">
+              {% if config %}{{ config.platform_gis }}{% else %}QGIS & Leaflet{% endif %}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {% if mkn_matrix_html or non_mkn_matrix_html %}
+      <section id="matrices" class="mb-8 sm:mb-12">
+        <h3 class="brutal-subtitle mb-4 sm:mb-6 brutal-border border-b pb-2 bg-soft-orange p-3">
+          📊 Matriks Korelasi Detail
+        </h3>
+        
+        {% if mkn_matrix_html %}
+        <div class="mb-6 sm:mb-8">
+          <h4 class="text-lg sm:text-xl font-bold mb-3 text-green-700 bg-soft-green p-3 brutal-border brutal-shadow-green">
+            🥗 Matriks Korelasi Pengeluaran Makanan
+          </h4>
+          <div class="matrix-container">
+            {{ mkn_matrix_html|safe }}
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if non_mkn_matrix_html %}
+        <div class="mb-6 sm:mb-8">
+          <h4 class="text-lg sm:text-xl font-bold mb-3 text-purple-700 bg-soft-purple p-3 brutal-border brutal-shadow-purple">
+            🏠 Matriks Korelasi Pengeluaran Non-Makanan
+          </h4>
+          <div class="matrix-container">
+            {{ non_mkn_matrix_html|safe }}
+          </div>
+        </div>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <section class="mt-8 sm:mt-10 mb-6 sm:mb-8 text-center">
+        <button id="back-to-top" class="brutal-btn bg-white text-gray-800 p-3 sm:p-4 text-lg font-bold brutal-shadow-blue brutal-hover">
+          ⬆️ KEMBALI KE ATAS
+        </button>
+      </section>
+    </main>
+
+    <footer class="bg-soft-yellow mt-8 p-4 sm:p-6 brutal-border border-t">
+      <div class="container mx-auto text-center">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+          <div class="text-xs sm:text-sm font-bold">
+            <p class="brutal-border bg-soft-pink p-2 inline-block">© 2025 QGIS PROJECT</p>
+          </div>
+          <div class="text-xs sm:text-sm font-bold">
+            <p class="brutal-border bg-soft-blue p-2 inline-block">BRUTALISM DESIGN</p>
+          </div>
+          <div class="text-xs sm:text-sm font-bold">
+            <p class="brutal-border bg-soft-green p-2 inline-block">DJANGO POWERED</p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile Navigation Toggle
+      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      const mobileNav = document.getElementById('mobile-nav');
+      const closeMenuBtn = document.getElementById('close-menu');
+      
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileNav.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+      
+      closeMenuBtn.addEventListener('click', () => {
+        mobileNav.classList.remove('active');
+        document.body.style.overflow = 'auto';
+      });
+      
+      // Close mobile nav when clicking on links
+      const mobileNavLinks = mobileNav.querySelectorAll('a[href^="#"]');
+      mobileNavLinks.forEach(link => {
+        link.addEventListener('click', () => {
+          mobileNav.classList.remove('active');
+          document.body.style.overflow = 'auto';
+        });
+      });
+      
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+      
+      // Back to top button functionality
+      const backToTopBtn = document.getElementById('back-to-top');
+      if (backToTopBtn) {
+        backToTopBtn.addEventListener('click', () => {
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        });
+      }
+
+      // Add brutal hover effects on scroll (excluding header elements)
+      window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const brutalistElements = document.querySelectorAll('.brutal-hover:not(header .brutal-hover)');
+        
+        brutalistElements.forEach(el => {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            el.style.transform = `translateY(${scrolled * 0.02}px)`;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
